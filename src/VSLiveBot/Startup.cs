@@ -6,11 +6,14 @@ using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.Integration;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Configuration;
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using VSLiveBot.StateInformation;
 
 namespace VSLiveBot
@@ -54,9 +57,14 @@ namespace VSLiveBot
 
             services.AddSingleton<VSLiveBotAccessors>(sp =>
             {
+                var options = sp.GetRequiredService<IOptions<BotFrameworkOptions>>().Value;
+                //var dialogState = options.State.OfType<ConversationState>().FirstOrDefault();
+
                 // Create the custom state accessor.
                 return new VSLiveBotAccessors(conversationState, userState)
                 {
+                    ConversationDialogState = conversationState.CreateProperty<DialogState>("DialogState"),
+                    UserProfile = userState.CreateProperty<UserProfile>("UserProfile"),
                     ConversationDataAccessor = conversationState.CreateProperty<ConversationData>(VSLiveBotAccessors.ConversationDataName),
                     UserProfileAccessor = userState.CreateProperty<UserProfile>(VSLiveBotAccessors.UserProfileName),
                 };

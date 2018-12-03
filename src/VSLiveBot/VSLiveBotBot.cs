@@ -4,7 +4,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
+using VSLiveBot.Dialogs;
 using VSLiveBot.StateInformation;
 
 namespace VSLiveBot
@@ -22,6 +24,7 @@ namespace VSLiveBot
     public class VSLiveBotBot : IBot
     {
         private readonly VSLiveBotAccessors _accessors;
+        private DialogSet _dialogs;
 
         /// <summary>
         /// Initializes a new instance of the class.
@@ -29,6 +32,15 @@ namespace VSLiveBot
         public VSLiveBotBot(VSLiveBotAccessors accessors)
         {
             _accessors = accessors ?? throw new System.ArgumentNullException(nameof(accessors));
+
+            _dialogs = new DialogSet(accessors.ConversationDialogState);
+
+            var userInforDialog = new UserInfoDialog(_accessors);
+
+            // Add named dialogs to the DialogSet. These names are saved in the dialog state.
+            _dialogs.Add(new WaterfallDialog("UserInfo", userInforDialog.Steps()));
+            _dialogs.Add(new TextPrompt("name"));
+            _dialogs.Add(new TextPrompt("adoId"));
         }
 
         /// <summary>
@@ -43,69 +55,42 @@ namespace VSLiveBot
         /// <seealso cref="ConversationState"/>
         public async Task OnTurnAsync(ITurnContext turnContext, CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Handle Message activity type, which is the main activity type for shown within a conversational interface
-            // Message activities may contain text, speech, interactive cards, and binary or unknown attachments.
-            // see https://aka.ms/about-bot-activity-message to learn more about the message and other activity types
-            if (turnContext.Activity.Type == ActivityTypes.Message)
+            switch (turnContext.Activity.Type)
             {
-                // Get the state properties from the turn context.
-                UserProfile userProfile =
-                    await _accessors.UserProfileAccessor.GetAsync(turnContext, () => new UserProfile());
-                ConversationData conversationData =
-                    await _accessors.ConversationDataAccessor.GetAsync(turnContext, () => new ConversationData());
-
-                if (string.IsNullOrEmpty(userProfile.Name))
-                {
-                    // First time around this is set to false, so we will prompt user for name.
-                    if (conversationData.PromptedUserForName)
+                case ActivityTypes.ConversationUpdate:
                     {
-                        // Set the name to what the user provided
-                        userProfile.Name = turnContext.Activity.Text?.Trim();
-                        // Reset the flag to allow the bot to go though the cycle again.
-                        conversationData.PromptedUserForName = false;
-                        if (string.IsNullOrEmpty(userProfile.AdoId))
-                        {
-                            // Prompt the user for their name.
-                            await turnContext.SendActivityAsync($"Thanks {userProfile.Name}, What is your Azure Dev Ops Id?");
+                        IConversationUpdateActivity activity = turnContext.Activity.AsConversationUpdateActivity();
 
-                            // Set the flag to true, so we don't prompt in the next turn.
-                            conversationData.PromptedUserForAdoId = true;
+                        break;
+                    }
+                case ActivityTypes.Message:
+                    {
+                        // Get the state properties from the turn context.
+                        UserProfile userProfile =
+                            await _accessors.UserProfileAccessor.GetAsync(turnContext, () => new UserProfile());
+                        ConversationData conversationData =
+                            await _accessors.ConversationDataAccessor.GetAsync(turnContext, () => new ConversationData());
+
+                        if (string.IsNullOrEmpty(userProfile.Name) || string.IsNullOrEmpty(userProfile.AdoId))
+                        {
+                            var dialogContext = await _dialogs.CreateContextAsync(turnContext, cancellationToken);
+                            var results = await dialogContext.ContinueDialogAsync(cancellationToken);
+
+                            // If the DialogTurnStatus is Empty we should start a new dialog.
+                            if (results.Status == DialogTurnStatus.Empty)
+                            {
+                                await dialogContext.BeginDialogAsync("UserInfo", null, cancellationToken);
+                            }
                         }
                         else
                         {
-                            // Acknowledge that we got their name.
-                            await turnContext.SendActivityAsync($"Thanks {userProfile.Name}.");
+                            await turnContext.SendActivityAsync($"{userProfile.Name}, We got what we need");
                         }
+
+                        await _accessors.ConversationDataAccessor.SetAsync(turnContext, conversationData);
+                        await _accessors.ConversationState.SaveChangesAsync(turnContext);
                     }
-                    else
-                    {
-                        // Prompt the user for their name.
-                        await turnContext.SendActivityAsync($"What is your name?");
-                        // Set the flag to true, so we don't prompt in the next turn.
-                        conversationData.PromptedUserForName = true;
-                    }
-                    // Save user state and save changes.
-                    await _accessors.UserProfileAccessor.SetAsync(turnContext, userProfile);
-                    await _accessors.UserState.SaveChangesAsync(turnContext);
-                }
-                else if(string.IsNullOrEmpty(userProfile.AdoId) && conversationData.PromptedUserForAdoId)
-                {
-                    // Set the name to what the user provided
-                    userProfile.AdoId = turnContext.Activity.Text?.Trim();
-
-                    // Acknowledge that we got their name.
-                    await turnContext.SendActivityAsync($"Thanks {userProfile.Name} for your Azure Dev Ops username of {userProfile.AdoId}.");
-
-                    // Reset the flag to allow the bot to go though the cycle again.
-                    conversationData.PromptedUserForAdoId = false;
-                }
-                else
-                {
-                    await turnContext.SendActivityAsync($"We got what we need");
-                }
-
-                await _accessors.ConversationDataAccessor.SetAsync(turnContext, conversationData);
-                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                    break;
             }
         }
     }
