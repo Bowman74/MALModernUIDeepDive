@@ -1,0 +1,50 @@
+{
+  "name": "MalDeepDive",
+  "padlock": "CpE8z+WcZlEQTZMHAp5Jug==!6BGbC7uErPa7psNrLNHBG8UjiK0SxCA+vLRiu8UmCJ7OdKG9+CaDNAQZqTeMOJok",
+  "version": "2.0",
+  "services": [
+    {
+      "tenantId": "827a42aa-4008-41d3-8494-1cda1f490879",
+      "subscriptionId": "1fc37ba2-f549-440e-af4f-003c853c7690",
+      "resourceGroup": "Mobile-Default-Web-EastUS",
+      "serviceName": "MalDeepDive",
+      "type": "abs",
+      "name": "MalDeepDive",
+      "id": "1"
+    },
+    {
+      "connectionString": "R9JCODbFqO33Zs8eNp0rhw==!OyQkybrRaFIEpD+10d9YmuoFNsLM6yagtPOBAj8CA0zWwRVfwHc+3GdQjsSeqME9d4y9eC9jQFrw5G+eYI9AtT3Z65CNU7cEBifkNDs/hWbyTauXrzMywOr5hfUFm5MjYE4y4RsQrcdVhYJElOAS4Dv/L+JDY/K4TeeOmvoMcSXQU2nStu9CkgkvU5UTKTBk9ASlczTJDv13SCUnIQ6xhg==",
+      "tenantId": "827a42aa-4008-41d3-8494-1cda1f490879",
+      "subscriptionId": "1fc37ba2-f549-440e-af4f-003c853c7690",
+      "resourceGroup": "Mobile-Default-Web-EastUS",
+      "serviceName": "maldeepdive9497",
+      "type": "blob",
+      "id": "2"
+    },
+    {
+      "appId": "",
+      "appPassword": "",
+      "endpoint": "http://localhost:3978/api/messages",
+      "type": "endpoint",
+      "name": "development",
+      "id": "3"
+    },
+    {
+      "appId": "ee203b26-1a27-4e2b-b56a-e25ec568820f",
+      "appPassword": "KWIRly6dFcXhNyN9+giWmg==!a9h8MtMVrHayQOUeZnkWiMvtXEiOfvn382R47tKRJZM=",
+      "endpoint": "https://maldeepdive.azurewebsites.net/api/messages",
+      "type": "endpoint",
+      "name": "production",
+      "id": "4"
+    },
+    {
+      "appId": "a242494b-f6c1-4a92-b821-32913b47a3bc",
+      "authoringKey": "HHsCy9eDJNjhgYpDI4YVNw==!cY/4tKpg3N2cp0L7GuOt/zhnWFScZNPxmFaRkdGXTPIYNSoFrKUwKUX7mVAV6hHa",
+      "version": "0.1",
+      "region": "westus",
+      "type": "luis",
+      "name": "ModernAppsLiveLanguage",
+      "id": "5"
+    }
+  ]
+}
