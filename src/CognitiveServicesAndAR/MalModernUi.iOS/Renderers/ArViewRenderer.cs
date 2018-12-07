@@ -7,6 +7,7 @@ using MalModernUi.iOS.Renderers;
 using SceneKit;
 using Xamarin.Forms;
 using Xamarin.Forms.Platform.iOS;
+using OpenTK;
 
 [assembly: ExportRenderer(typeof(ArView), typeof(ArViewRenderer))]
 namespace MalModernUi.iOS.Renderers
@@ -25,7 +26,38 @@ namespace MalModernUi.iOS.Renderers
             this.View = sceneView;
 
             sceneView.ShowsStatistics = true;
+
+            var tapGestureRecognizer = new UITapGestureRecognizer(HandleTap);
+            sceneView.AddGestureRecognizer(tapGestureRecognizer);
         }
+
+        private void HandleTap(UITapGestureRecognizer recognizer)
+        {
+            var tapLocation = recognizer.LocationInView(sceneView);
+            var hitTestResults = sceneView.HitTest(tapLocation, ARHitTestResultType.ExistingPlaneUsingExtent);
+
+            if (hitTestResults != null && hitTestResults.Length > 0)
+            {
+                var hitTestResult = hitTestResults[0];
+                var translation = PositionFromTransform(hitTestResult.WorldTransform);
+
+                var x = translation.X;
+                var y = translation.Y;
+                var z = translation.Z;
+
+                var shipScene = SCNScene.FromFile("Sprites/ship.scn");
+                var shipNode = shipScene.RootNode.FindChildNode("ship", false);
+
+                shipNode.Position = new SCNVector3(x, y, z);
+                sceneView.Scene.RootNode.AddChildNode(shipNode);
+            }
+        }
+
+        private SCNVector3 PositionFromTransform(NMatrix4 xform)
+        {
+            return new SCNVector3(xform.M14, xform.M24, xform.M34);
+        }
+
 
         public override void ViewDidUnload()
         {
@@ -60,7 +92,6 @@ namespace MalModernUi.iOS.Renderers
 
             Console.WriteLine($"didUpdateNode :{node.ChildNodes.Length}");
 
-        // Plane estimation may shift the center of a plane relative to its anchor's transform.
             foreach (var childNode in node.ChildNodes) 
             {
                 SCNPlane planeNode = childNode.Geometry as SCNPlane;
@@ -96,13 +127,10 @@ namespace MalModernUi.iOS.Renderers
             textNode.Position = new SCNVector3(-0.3f, -0.55f, 0.25f);
             textNode.Scale = new SCNVector3(0.075f, 0.1f, 0.5f);
 
-
             var plane = SCNPlane.Create(new nfloat(planeAnchor.Extent.X), new nfloat(planeAnchor.Extent.Z));
             var planeNode = SCNNode.FromGeometry(plane);
             planeNode.Position = new SCNVector3(planeAnchor.Center.X, 0f, planeAnchor.Center.Z);
 
-            // `SCNPlane` is vertically oriented in its local coordinate space, so
-            // rotate the plane to match the horizontal orientation of `ARPlaneAnchor`.
             var txtAngles = textNode.EulerAngles;
             txtAngles.X = (float)(-1f * (Math.PI / 2f));
             textNode.EulerAngles = txtAngles;
@@ -110,13 +138,8 @@ namespace MalModernUi.iOS.Renderers
             planeAngles.X = (float)(-1f * (Math.PI / 2f));
             planeNode.EulerAngles = planeAngles;
 
-            // Make the plane visualization semitransparent to clearly show real-world placement.
             planeNode.Opacity = 0.25f;
-            //NSLog(planeAnchor.center.x.debugDescription)
-            //NSLog(planeAnchor.center.y.debugDescription)
-            //NSLog(planeAnchor.center.z.debugDescription)
-            // Add the plane visualization to the ARKit-managed node so that it tracks
-            // changes in the plane anchor as plane estimation continues.
+
             node.AddChildNode(planeNode);
             node.AddChildNode(textNode);
         }
